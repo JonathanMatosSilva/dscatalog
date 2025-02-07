@@ -1,11 +1,13 @@
 package com.jonathan.dscatalog.services;
 
+import com.jonathan.dscatalog.dto.CategoryDTO;
 import com.jonathan.dscatalog.dto.ProductDTO;
+import com.jonathan.dscatalog.entities.Category;
 import com.jonathan.dscatalog.entities.Product;
+import com.jonathan.dscatalog.repositories.CategoryRepository;
 import com.jonathan.dscatalog.repositories.ProductRepository;
 import com.jonathan.dscatalog.services.exceptions.DatabaseException;
 import com.jonathan.dscatalog.services.exceptions.ResourceNotFoundException;
-import jakarta.persistence.Entity;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +25,9 @@ public class ProductService {
     @Autowired
     private ProductRepository repository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     @Transactional(readOnly = true)
     public Page<ProductDTO> findAllPaged(PageRequest pageRequest) {
         Page<Product> list = repository.findAll(pageRequest);
@@ -39,7 +44,7 @@ public class ProductService {
     @Transactional
     public ProductDTO insert(ProductDTO dto) {
         Product entity = new Product();
-        //entity.setName(dto.getName());
+        copyDtoToEntity(dto, entity);
         entity =  repository.save(entity);
         return new ProductDTO(entity);
     }
@@ -48,7 +53,7 @@ public class ProductService {
     public ProductDTO update(Long id, ProductDTO dto) {
         try {
             Product entity = repository.getReferenceById(id);
-            //entity.setName(dto.getName());
+            copyDtoToEntity(dto, entity);
             entity = repository.save(entity);
             return new ProductDTO(entity);
         } catch (EntityNotFoundException e) {
@@ -66,6 +71,20 @@ public class ProductService {
         }
         catch (DataIntegrityViolationException e) {
             throw new DatabaseException("Integrity violation");
+        }
+    }
+
+    private void copyDtoToEntity(ProductDTO dto, Product entity) {
+        entity.setName(dto.getName());
+        entity.setDescription(dto.getDescription());
+        entity.setDate(dto.getDate());
+        entity.setPrice(dto.getPrice());
+        entity.setPrice(dto.getPrice());
+
+        entity.getCategories().clear();
+        for (CategoryDTO cat : dto.getCategories()) {
+            Category category = categoryRepository.getReferenceById(cat.getId());
+            entity.getCategories().add(category);
         }
     }
 
